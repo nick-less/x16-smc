@@ -257,6 +257,10 @@ void setup() {
   Keyboard.begin(keyboardClockIrq);
   Mouse.begin(mouseClockIrq);
 
+#if !defined(__AVR_ATtiny861__)
+  // we run on main voltage, so we only do poweroff
+  PowerOnSeq();
+#endif
   
 }
 

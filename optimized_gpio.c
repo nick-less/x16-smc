@@ -94,27 +94,27 @@ static uint8_t get_bitmask_from_pin(uint8_t pin) {
 #if !defined(__AVR_ATtiny861__)
 static volatile uint8_t* get_ddr_address_from_pin(uint8_t pin)
 {
-  if (pin <= 4) return &DDRB;  // Pins 0-4 sind auf PORTB
-  else return &DDRA;           // Pins 5-11 sind auf PORTA
+  if (pin <= 5) return &DDRA;  // Arduino pins 0-5 are PORTA
+  else return &DDRB;            // Arduino pins 6-10 are PORTB
 }
 
 static volatile uint8_t* get_port_address_from_pin(uint8_t pin)
 {
-  if (pin <= 4) return &PORTB;
-  else return &PORTA;
+  if (pin <= 5) return &PORTA;
+  else return &PORTB;
 }
 
 static volatile uint8_t* get_pin_address_from_pin(uint8_t pin)
 {
-  if (pin <= 4) return &PINB;
-  else return &PINA;
+  if (pin <= 5) return &PINA;
+  else return &PINB;
 }
 
 static uint8_t get_bitmask_from_pin(uint8_t pin) {
-  if (pin <= 4) {
-    return _BV(pin);          // Pins 0-4 mappen direkt auf PB0-PB4
+  if (pin <= 5) {
+    return _BV(pin);        // Arduino pin 0-5 → bit 0-5 of PORTA
   } else {
-    return _BV(pin - 5);      // Pin 5 ist PA0, Pin 6 ist PA1 usw. (daher -5)
+    return _BV(pin - 6);    // Arduino pin 6-10 → bit 0-4 of PORTB
   }
 }
 #endif
