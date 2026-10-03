@@ -44,14 +44,29 @@
 //      (D 15) PB7 10|    |11  PA7 (D  7)
 //                   +----+
 
+
+// ATMEL ATTINY84A (14-Pin Standard Layout)
+//
+//                   +-\/-+
+//             VCC  1|    |14  GND
+//      (D 10) PB0  2|    |13  PA0 (D  0)
+//      (D  9) PB1  3|    |12  PA1 (D  1)
+//      (D  8) PB3  4|    |11  PA2 (D  2)
+// INT0 (D  7) PB2  5|    |10  PA3 (D  3)
+//      (D  6) PA7  6|    |9   PA4 (D  4)
+//      (D  5) PA6  7|    |8   PA5 (D  5)
+//                   +----+
+
+
 #ifndef __AVR_ATtiny861__
-  #error Incompatible chip
+//  #error Incompatible chip
 #endif
 
 #include "Arduino.h"
 #include <avr/io.h>
 #include "optimized_gpio.h"
 
+#if defined(__AVR_ATtiny861__)
 
 static volatile uint8_t* get_ddr_address_from_pin(uint8_t pin)
 {
@@ -74,7 +89,35 @@ static volatile uint8_t* get_pin_address_from_pin(uint8_t pin)
 static uint8_t get_bitmask_from_pin(uint8_t pin) {
   return _BV(pin & 0x07);
 }
+#endif
 
+#if !defined(__AVR_ATtiny861__)
+static volatile uint8_t* get_ddr_address_from_pin(uint8_t pin)
+{
+  if (pin <= 4) return &DDRB;  // Pins 0-4 sind auf PORTB
+  else return &DDRA;           // Pins 5-11 sind auf PORTA
+}
+
+static volatile uint8_t* get_port_address_from_pin(uint8_t pin)
+{
+  if (pin <= 4) return &PORTB;
+  else return &PORTA;
+}
+
+static volatile uint8_t* get_pin_address_from_pin(uint8_t pin)
+{
+  if (pin <= 4) return &PINB;
+  else return &PINA;
+}
+
+static uint8_t get_bitmask_from_pin(uint8_t pin) {
+  if (pin <= 4) {
+    return _BV(pin);          // Pins 0-4 mappen direkt auf PB0-PB4
+  } else {
+    return _BV(pin - 5);      // Pin 5 ist PA0, Pin 6 ist PA1 usw. (daher -5)
+  }
+}
+#endif
 
 // These inline functions will evaluate if the input parameters are known at compile time using the gcc-specific __builtin_constant_p() function,
 // and uses that information to choose the best implementation.

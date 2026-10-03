@@ -24,8 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
-#if defined(__AVR_ATtiny861__)
-#define ATTINY861
 
 /*  - Pinout Updated for Proto 4 / Dev Board
 ATTINY861 Pinout
@@ -46,32 +44,88 @@ ATTINY861 Pinout
                                               -----------
  */
 
-#define I2C_SDA_PIN         8
-#define I2C_SCL_PIN        10
+ /* cp256 smc, attiny 84a
+                     ----\_/----
+    VCC            1 | 1      14 | 14  GND (Masse)
+    IRQB           2 | 2      13 | 13  PS2_KBD_DAT
+    RESET_BTN      3 | 3      12 | 12  PS2_KBD_CLK
+    RESET          4 | 4      11 | 11  POWER_BTN
+    PS2_MSE_DAT    5 | 5      10 | 10  PS2_MSE_CLK
+    NC             6 | 6       9 |  9  I2C_SCL
+    I2C_SDA        7 | 7       8 |  8  SW_PHI
+                      -----------
 
-#define PS2_KBD_CLK         2
-#define PS2_KBD_DAT        11
-#define PS2_MSE_CLK        14
-#define PS2_MSE_DAT        13
+// ATMEL ATTINY84A (14-Pin Standard Layout)
+//
+//                   +-\/-+
+//             VCC  1|    |14  GND
+//      (D 10) PB0  2|    |13  PA0 (D  0)
+//      (D  9) PB1  3|    |12  PA1 (D  1)
+//      (D  8) PB3  4|    |11  PA2 (D  2)
+// INT0 (D  7) PB2  5|    |10  PA3 (D  3)
+//      (D  6) PA7  6|    |9   PA4 (D  4)
+//      (D  5) PA6  7|    |8   PA5 (D  5)
+//                   +----+
 
-#define NMI_BUTTON_PIN      7
-#define RESET_BUTTON_PIN   12
-#define POWER_BUTTON_PIN    4
 
-#define RESB_PIN            0
-#define NMIB_PIN            1
-#define IRQB_PIN            9
+  */
 
-#define PWR_ON              5
-#define PWR_OK              3
+#if defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny84A__)
+  #define ATTINY84
 
-#define ACT_LED             6
+  // --- I2C / USI ---
+  #define I2C_SDA_PIN         PIN_PA6  // Phys Pin 7 (PA6)
+  #define I2C_SCL_PIN         PIN_PA4 // Phys Pin 6 (PA4)
 
-#endif
+  // --- PS/2 Peripherie ---
+  #define PS2_KBD_DAT         PIN_PA0  // Phys Pin 13 (PA1)
+  #define PS2_KBD_CLK         PIN_PA1  // Phys Pin 12 (PA2)
+  #define PS2_MSE_DAT         PIN_PB2  // Phys Pin 5 (PA3)
+  #define PS2_MSE_CLK         PIN_PA3 // Phys Pin 10 (PA4)
 
-#if defined(COMMUNITYX16_PINS)
-  #define NMI_BUTTON_PIN     3
-  #define IRQB_PIN           7
-  #define PWR_OK             6
-  #define ACT_LED            9
+  // --- Taster (Eingänge) ---
+  #define POWER_BUTTON_PIN    PIN_PA2  // Phys Pin 11 (PA7) 
+
+  // --- CPU-Signale (Ausgänge) ---
+  #define RESB_PIN            PIN_PB3  // Phys Pin 3 (PB0) -
+  #define IRQB_PIN            PIN_PB0 
+  #define RESET_BUTTON_PIN    PIN_PB1
+
+  #define ACT_LED             PIN_PA5
+#endif 
+
+#if defined(__AVR_ATtiny861__) || defined(__AVR_ATtiny861A__)
+  #define ATTINY861
+
+  #define I2C_SDA_PIN         8
+  #define I2C_SCL_PIN        10
+
+  #define PS2_KBD_CLK         2
+  #define PS2_KBD_DAT        11
+  #define PS2_MSE_CLK        14
+  #define PS2_MSE_DAT        13
+
+  #define NMI_BUTTON_PIN      7
+  #define RESET_BUTTON_PIN   12
+  #define POWER_BUTTON_PIN    4
+
+  #define RESB_PIN            0
+  #define NMIB_PIN            1
+  #define IRQB_PIN            9
+
+  #define PWR_ON              5
+  #define PWR_OK              3
+
+  #define ACT_LED             6
+
+  #if defined(COMMUNITYX16_PINS)
+    #undef NMI_BUTTON_PIN
+    #undef IRQB_PIN
+    #undef PWR_OK
+    #undef ACT_LED
+    #define NMI_BUTTON_PIN     3
+    #define IRQB_PIN           7
+    #define PWR_OK             6
+    #define ACT_LED            9
+  #endif
 #endif

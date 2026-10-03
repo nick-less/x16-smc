@@ -28,6 +28,7 @@
 #include <Arduino.h>
 #include "setup_ps2.h"
 #include "optimized_gpio.h"
+#include "PinChangeInterrupt.h"
 #define SCANCODE_TIMEOUT_MS 50
 
 bool PWR_ON_active();
@@ -46,7 +47,7 @@ class PS2Port
 {
     static_assert(size <= 256, "Buffer size may not exceed 256");                // Hard limit on buffer size
     static_assert((size & (size - 1)) == 0, "Buffer size must be a power of 2");  // size must be a power of 2
-    static_assert(digitalPinToInterrupt(clkPin) != NOT_AN_INTERRUPT);
+//    static_assert(digitalPinToInterrupt(clkPin) != NOT_AN_INTERRUPT);
 
   protected:
     volatile uint8_t head;
@@ -96,7 +97,7 @@ class PS2Port
 
     /// @brief Begin processing PS/2 traffic
     void begin(void(*irqFunc)()) {
-      attachInterrupt(digitalPinToInterrupt(clkPin), irqFunc, FALLING);
+      attachPCINT(digitalPinToPCINT(clkPin), irqFunc, FALLING);
     }
 
     /// @brief Process data on falling clock edge

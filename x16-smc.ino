@@ -24,16 +24,15 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // Commander X16 ATX Power Control, Reset / NMI, PS/2
-
 // ----------------------------------------------------------------
 // Build Options
 // ----------------------------------------------------------------
-#if !defined(__AVR_ATtiny861__)
-  #error "X16 SMC only builds for ATtiny861"
+#if !(defined(__AVR_ATtiny861__) || defined(__AVR_ATtiny84A__))
+//  #error "X16 SMC only builds for ATtiny861 or ATtiny84A"
 #endif
 
 //#define COMMUNITYX16_PINS
-#define ENABLE_NMI_BUT
+//#define ENABLE_NMI_BUT
 //#define KBDBUF_FULL_DBG
 
 
@@ -49,7 +48,7 @@
 #include "ps2.h"
 #include "smc_wire.h"
 #include "setup_ps2.h"
-
+#include "PinChangeInterrupt.h"
 #include <avr/boot.h>
 #include <util/delay.h>
 
@@ -189,6 +188,25 @@ void setup() {
   OCR1A = 100;         // 100 x 1.0 us = 100 us
 
   TIMSK |= 1 << OCIE1A;
+#else
+  // Timer 1 Kontrollregister zurücksetzen
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0; // Zähler auf 0 setzen
+
+  // 1. CTC-Modus aktivieren (Clear Timer on Compare Match)
+  // Im CTC-Modus wird der Zähler automatisch bei Erreichen von OCR1A genullt.
+  TCCR1B |= (1 << WGM12); 
+
+  // 2. Prescaler auf /8 stellen (Bei 8 MHz Systemtakt: 8 MHz / 8 = 1 MHz -> 1 Tick = 1 µs)
+  TCCR1B |= (1 << CS11);  
+
+  // 3. Vergleichswert für 100 µs setzen (100 Ticks x 1 µs = 100 µs)
+  OCR1A = 100;            
+
+  // 4. Timer 1 Output Compare A Interrupt aktivieren
+  // Wichtig beim 84a: Das Register heißt hier TIMSK1!
+  TIMSK1 |= (1 << OCIE1A); 
 #endif
 
   // Timer 1 interrupt setup is done, enable interrupts
@@ -208,10 +226,15 @@ void setup() {
   NMI_BUT.attachClick(DoNMI);
 #endif
 
+
   // Setup Power Supply
+#if defined(PWR_OK)
   pinMode_opt(PWR_OK, INPUT);
+#endif
+#if defined(PWR_ON)
   digitalWrite_opt(PWR_ON, HIGH);
   pinMode_opt(PWR_ON, OUTPUT);
+#endif
 
   // Turn Off Activity LED
   pinMode_opt(ACT_LED, OUTPUT);
@@ -221,9 +244,10 @@ void setup() {
   assertReset();
 
   // Release NMI
+#if defined(NMIB_PIN)
   pinMode_opt(NMIB_PIN, OUTPUT);
   digitalWrite_opt(NMIB_PIN, HIGH);
-
+#endif 
   // Initialize I2C
   smcWire.begin(I2C_ADDR);
   smcWire.onReceive(I2C_Receive);
@@ -232,23 +256,29 @@ void setup() {
   // PS/2 host init
   Keyboard.begin(keyboardClockIrq);
   Mouse.begin(mouseClockIrq);
+
+  
 }
+
+
 
 // ----------------------------------------------------------------
 // Main Loop
 // ----------------------------------------------------------------
 void loop() {
   // Shutdown on PSU Fault Condition
-  if ((SYSTEM_POWERED == 1) && (!digitalRead_opt(PWR_OK))) {
+#if defined(PWR_OK)
+  if (( == 1) && (!digitalRead_opt(PWR_OK))) {
     PowerOffSeq();
   }
-  
+#endif
+ 
   // Update Button State
   POW_BUT.tick();
   RES_BUT.tick();
-  #if defined(ENABLE_NMI_BUT)
+#if defined(ENABLE_NMI_BUT)
   NMI_BUT.tick();
-  #endif
+#endif
 
   // Update Keyboard and Mouse Initialization State
   mouseTick();
@@ -312,7 +342,7 @@ void DoPowerToggle() {
     buttonCombinationFlags |= 1;
     evaluateButtonCombination();
   }
-  else if (SYSTEM_POWERED == 0) {                  // If Off, turn on
+  else if ( SYSTEM_POWERED == 0) {                  // If Off, turn on
     PowerOnSeq();
   }
   else {                                      // If On, turn off
@@ -334,12 +364,12 @@ void DoReset() {
     buttonCombinationFlags |= 2;
     evaluateButtonCombination();
   }
-  else if (SYSTEM_POWERED == 1) {
+  else if ( SYSTEM_POWERED == 1) {
     assertReset();
     _delay_ms(RESB_HOLDTIME_MS);
     deassertReset();
     digitalWrite_opt(ACT_LED, ACT_LED_OFF);
-    
+        
     Keyboard.flush();
     Mouse.reset();
     mouseReset();
@@ -350,18 +380,22 @@ void DoReset() {
 }
 
 void DoNMI() {
-  if (SYSTEM_POWERED == 1 && buttonCombinationTimer == 0 ) {   // Ignore unless Powered On; also ignore if button combination timer is active
+ #if defined (NMIB_PIN) 
+  if ( SYSTEM_POWERED == 1 && buttonCombinationTimer == 0 ) {   // Ignore unless Powered On; also ignore if button combination timer is active
     digitalWrite_opt(NMIB_PIN, LOW);                // Press NMI
     _delay_ms(NMI_HOLDTIME_MS);
     digitalWrite_opt(NMIB_PIN, HIGH);
   }
+ #endif
 }
 
 void PowerOffSeq() {
   assertReset();                              // Hold CPU in reset
   digitalWrite_opt(ACT_LED, ACT_LED_OFF);     // Ensure activity LED is off
   _delay_ms(AUDIOPOP_HOLDTIME_MS);                // Wait for audio system to stabilize before power is turned off
+#if defined (PWR_ON) 
   digitalWrite_opt(PWR_ON, HIGH);             // Turn off supply
+#endif
   Keyboard.reset();                           // Reset and deactivate pullup
   Mouse.reset();                              // Reset and deactivate pullup
   SYSTEM_POWERED = 0;                         // Global Power state Off
@@ -371,15 +405,19 @@ void PowerOffSeq() {
 
 void PowerOnSeq() {
   assertReset();
+
+  // were not running on standby power
+#if !defined(ATTINY84)
   digitalWrite_opt(PWR_ON, LOW);              // turn on power supply
+#endif
   Keyboard.reset();                           // Reset and activate pullup
   Mouse.reset();                              // Reset and activate pullup
   unsigned long TimeDelta = 0;
   unsigned long StartTime = millis();         // get current time
+#if defined(PWR_OK)
   while (!digitalRead_opt(PWR_OK)) {          // Time how long it takes
     TimeDelta = millis() - StartTime;       // for PWR_OK to go active.
   }
-  
   if ((PWR_ON_MIN_MS > TimeDelta) || (PWR_ON_MAX_MS < TimeDelta)) {
     PowerOffSeq();                          // FAULT! Turn off supply
     // insert error handler, flash activity light & Halt?   IE, require hard power off before continue?
@@ -389,6 +427,8 @@ void PowerOnSeq() {
     _delay_ms(RESB_HOLDTIME_MS);                // Allow system to stabilize
     SYSTEM_POWERED = 1;                     // Global Power state On
   }
+#endif  
+
   deassertReset();
 }
 
@@ -754,7 +794,9 @@ bool PWR_ON_active()
   // Thus, return true if DDR is output (1) and if PORT is low (0).
   // Similar to the SYSTEM_POWERED variable, but this is more accurate when power is changing.
   // A future code improvement can be to make gpio functions to read from PORT/DDR register
-
+#if defined(ATTINY84)
+  return true;
+#else
   // The following code assumes PWR_ON is pin 5, which is PA5.
 #if PWR_ON != 5
   #error Please adjust PWR_ON_active()
@@ -762,4 +804,5 @@ bool PWR_ON_active()
 
   if ((DDRA & _BV(5)) == 0) return false; // Port is input. This is the case when mouse and keyboard objects are created
   return (PORTA & _BV(5)) ? false : true;
+#endif
 }

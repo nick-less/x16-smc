@@ -32,8 +32,8 @@
 /*
    I2C pins
  */
-#define I2C_SCL_PINB 2
-#define I2C_SDA_PINB 0
+#define I2C_SCL_PINB 4
+#define I2C_SDA_PINB 6
 
 /*
   Constants
@@ -139,16 +139,25 @@ void SmcWire::begin(uint8_t addr) {
   //   is enabled. Clearing the Start Condition Flag (USISIF) releases the line. The SDA and 
   //   SCL pin inputs is not affected by enabling this mode. Pull-ups on the SDA and SCL port 
   //   pin are disabled in Two-wire mode."
-  
+
+#if defined(__AVR_ATtiny861__)
   // Set SCL as output and SDA as input
   DDRB = (DDRB & SDA_INPUT) | SCL_OUTPUT;
-
   // Set SDA and SCL output ports to high
   PORTB = PORTB | (1 << I2C_SDA_PINB) | (1 << I2C_SCL_PINB);
+#else
+  // Set SCL as output and SDA as input
+  DDRA = (DDRA & SDA_INPUT) | SCL_OUTPUT;
+  
+  // Set SDA and SCL output ports to high
+  PORTA = PORTA | (1 << I2C_SDA_PINB) | (1 << I2C_SCL_PINB);
+#endif
 
   // Setup USI control and status registers to listen for start/stop conditions
   USICR = I2C_LISTEN;
   USISR = I2C_CLEAR_START_FLAG | I2C_CLEAR_STOP_FLAG | I2C_CLEAR_OVF_FLAG;
+
+
 }
 
 void SmcWire::onReceive(void (*function)(uint8_t)) {
@@ -200,6 +209,8 @@ void SmcWire::clearBuffer() {
    cause of the interrupt.
  */
 ISR(USI_START_vect) {
+
+#if defined(__AVR_ATtiny861__)
   // Ensure SDA is input
   DDRB &= SDA_INPUT;
 
@@ -208,6 +219,19 @@ ISR(USI_START_vect) {
   while (p == (1<<I2C_SCL_PINB)) {
     p = PINB & ((1<<I2C_SCL_PINB) | (1<<I2C_SDA_PINB));
   }
+#else 
+// Ensure SDA is input
+  DDRA &= SDA_INPUT;
+
+  // Wait until start or stop condition completes (SCL low or SDA high)
+  uint8_t p = (1<<I2C_SCL_PINB);
+  while (p == (1<<I2C_SCL_PINB)) {
+    p = PINA & ((1<<I2C_SCL_PINB) | (1<<I2C_SDA_PINB));
+  }
+
+
+#endif
+
 
   // Invoke callback for incoming data
   if (receiveHandler != NULL && ddr == MASTER_WRITE && buflen > 0) {
@@ -235,6 +259,8 @@ ISR(USI_START_vect) {
 /**
    Interrupt handler for USI overflow
  */
+
+ 
 ISR(USI_OVF_vect) {
   switch (state) {
     
@@ -259,7 +285,12 @@ ISR(USI_OVF_vect) {
 
         // Send ACK
         USIDR = 0;
+#if defined(__AVR_ATtiny861__)
         DDRB |= SDA_OUTPUT;
+#else 
+        DDRA |= SDA_OUTPUT;
+#endif
+        
         USISR = I2C_COUNT_BIT;
       }
 
@@ -273,7 +304,11 @@ ISR(USI_OVF_vect) {
     case I2C_STATE_REQUEST_DATA:
       // Config to read one byte from Master
       state = I2C_STATE_RECEIVE_DATA;
+#if defined(__AVR_ATtiny861__)
       DDRB &= SDA_INPUT;
+#else 
+      DDRA &= SDA_INPUT;
+#endif
       USISR = I2C_COUNT_BYTE;
       break;
 
@@ -292,7 +327,11 @@ ISR(USI_OVF_vect) {
         USIDR = 0xff;
       }
 
+#if defined(__AVR_ATtiny861__)
       DDRB |= SDA_OUTPUT;
+#else 
+      DDRA |= SDA_OUTPUT;
+#endif
       USISR = I2C_COUNT_BIT;
       break;
 
@@ -311,7 +350,11 @@ ISR(USI_OVF_vect) {
         }
 
         // Configure to send one byte
+#if defined(__AVR_ATtiny861__)
         DDRB |= SDA_OUTPUT;
+#else 
+        DDRA |= SDA_OUTPUT;
+#endif
         USISR = I2C_COUNT_BYTE;
         break;
 
@@ -320,7 +363,11 @@ ISR(USI_OVF_vect) {
       state = I2C_STATE_EVAL_RESPONSE;
 
       // Configure to receive ACK/NACK
+#if defined(__AVR_ATtiny861__)
       DDRB &= SDA_INPUT;
+#else 
+      DDRA &= SDA_INPUT;
+#endif
       USISR = I2C_COUNT_BIT;
       break;
 
@@ -343,7 +390,11 @@ ISR(USI_OVF_vect) {
       //   All possible undefined states, should not happen
       
       clear_and_listen:
+#if defined(__AVR_ATtiny861__)
         DDRB &= SDA_INPUT;
+#else 
+        DDRA &= SDA_INPUT;
+#endif
         USICR = I2C_LISTEN;
         USISR = I2C_CLEAR_OVF_FLAG;
         break;
