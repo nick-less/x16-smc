@@ -87,9 +87,9 @@ ATTINY861 Pinout
   #define POWER_BUTTON_PIN    PIN_PA2  // Phys Pin 11 (PA7) 
 
   // --- CPU-Signale (Ausgänge) ---
-  #define RESB_PIN            PIN_PB3  // Phys Pin 3 (PB0) -
+  #define RESB_PIN            PIN_PB1
   #define IRQB_PIN            PIN_PB0 
-  #define RESET_BUTTON_PIN    PIN_PB1
+  // #define RESET_BUTTON_PIN    PIN_PB1
 
   #define ACT_LED             PIN_PA5
 #endif 

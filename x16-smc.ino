@@ -124,7 +124,9 @@
 // Power, Reset and NMI
 volatile bool SYSTEM_POWERED = 0;      // default state - Powered off
 volatile SmcButton POW_BUT(POWER_BUTTON_PIN);
+#if defined(RESET_BUTTON_PIN)
 volatile SmcButton RES_BUT(RESET_BUTTON_PIN);
+#endif
 #if defined(ENABLE_NMI_BUT)
 volatile SmcButton NMI_BUT(NMI_BUTTON_PIN);
 #endif
@@ -219,8 +221,10 @@ void setup() {
   // Set flag to show that LongPress has been used
   POW_BUT.attachDuringLongPress(DoLongPressPowerToggle); 
 
+#if defined(RESET_BUTTON_PIN)
   RES_BUT.attachClick(DoReset);
   RES_BUT.attachDuringLongPress(DoReset);
+#endif
 
 #if defined(ENABLE_NMI_BUT)
   NMI_BUT.attachClick(DoNMI);
@@ -279,7 +283,9 @@ void loop() {
  
   // Update Button State
   POW_BUT.tick();
+#if defined(RESET_BUTTON_PIN)  
   RES_BUT.tick();
+#endif
 #if defined(ENABLE_NMI_BUT)
   NMI_BUT.tick();
 #endif
