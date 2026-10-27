@@ -67,6 +67,9 @@ void keyboardTick() {
       watchdog = WATCHDOG_DISABLE;
       return;
     }
+#if !defined(__AVR_ATtiny861__)
+    digitalWrite_opt(IRQB_PIN, Keyboard.available());
+#endif
 
     // State machine
     switch (kbd_init_state) {
