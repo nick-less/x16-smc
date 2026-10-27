@@ -51,10 +51,10 @@
 //             VCC  1|    |14  GND
 //      (D 10) PB0  2|    |13  PA0 (D  0)
 //      (D  9) PB1  3|    |12  PA1 (D  1)
-//      (D  8) PB3  4|    |11  PA2 (D  2)
-// INT0 (D  7) PB2  5|    |10  PA3 (D  3)
-//      (D  6) PA7  6|    |9   PA4 (D  4)
-//      (D  5) PA6  7|    |8   PA5 (D  5)
+//      (D 11) PB3  4|    |11  PA2 (D  2)
+// INT0 (D  8) PB2  5|    |10  PA3 (D  3)
+//      (D  7) PA7  6|    |9   PA4 (D  4)
+//      (D  6) PA6  7|    |8   PA5 (D  5)
 //                   +----+
 
 
@@ -65,6 +65,39 @@
 #include "Arduino.h"
 #include <avr/io.h>
 #include "optimized_gpio.h"
+
+
+#if !defined(__AVR_ATtiny861__)
+static volatile uint8_t* get_ddr_address_from_pin(uint8_t pin)
+{
+  if (pin <= 7) return &DDRA;  // Arduino pins 0-7 are PORTA
+  else return &DDRB;            // Arduino pins 7-10 are PORTB
+}
+
+static volatile uint8_t* get_port_address_from_pin(uint8_t pin)
+{
+  if (pin <= 7) return &PORTA;
+  else return &PORTB;
+}
+
+static volatile uint8_t* get_pin_address_from_pin(uint8_t pin)
+{
+  if (pin <= 7) return &PINA;
+  else return &PINB;
+}
+
+static uint8_t get_bitmask_from_pin(uint8_t pin) {
+ if (pin <= 7) {
+    return _BV(pin);        // Arduino pin 0-7 → bit 0-7 of PORTA
+  } else {
+      if (pin == 11) {
+          return 0x08;
+      }
+   return _BV(10-pin );    // Arduino pin 6-10 → bit 0-4 of PORTB
+  }
+}
+#endif
+
 
 #if defined(__AVR_ATtiny861__)
 
@@ -91,33 +124,6 @@ static uint8_t get_bitmask_from_pin(uint8_t pin) {
 }
 #endif
 
-#if !defined(__AVR_ATtiny861__)
-static volatile uint8_t* get_ddr_address_from_pin(uint8_t pin)
-{
-  if (pin <= 5) return &DDRA;  // Arduino pins 0-5 are PORTA
-  else return &DDRB;            // Arduino pins 6-10 are PORTB
-}
-
-static volatile uint8_t* get_port_address_from_pin(uint8_t pin)
-{
-  if (pin <= 5) return &PORTA;
-  else return &PORTB;
-}
-
-static volatile uint8_t* get_pin_address_from_pin(uint8_t pin)
-{
-  if (pin <= 5) return &PINA;
-  else return &PINB;
-}
-
-static uint8_t get_bitmask_from_pin(uint8_t pin) {
-  if (pin <= 5) {
-    return _BV(pin);        // Arduino pin 0-5 → bit 0-5 of PORTA
-  } else {
-    return _BV(pin - 6);    // Arduino pin 6-10 → bit 0-4 of PORTB
-  }
-}
-#endif
 
 // These inline functions will evaluate if the input parameters are known at compile time using the gcc-specific __builtin_constant_p() function,
 // and uses that information to choose the best implementation.

@@ -55,17 +55,17 @@ ATTINY861 Pinout
     I2C_SDA        7 | 7       8 |  8  SW_PHI
                       -----------
 
-// ATMEL ATTINY84A (14-Pin Standard Layout)
+// ATMEL ATTINY84 / ARDUINO / clockwise
 //
-//                   +-\/-+
-//             VCC  1|    |14  GND
-//      (D 10) PB0  2|    |13  PA0 (D  0)
-//      (D  9) PB1  3|    |12  PA1 (D  1)
-//      (D  8) PB3  4|    |11  PA2 (D  2)
-// INT0 (D  7) PB2  5|    |10  PA3 (D  3)
-//      (D  6) PA7  6|    |9   PA4 (D  4)
-//      (D  5) PA6  7|    |8   PA5 (D  5)
-//                   +----+
+//                           +-\/-+
+//                     VCC  1|    |14  GND
+//            (D  10)  PB0  2|    |13  PA0  (D  0)        AREF
+//             (D  9)  PB1  3|    |12  PA1  (D  1)
+//             (D 11)  PB3  4|    |11  PA2  (D  2)
+//  PWM  INT0  (D  8)  PB2  5|    |10  PA3  (D  3)
+//  PWM        (D  7)  PA7  6|    |9   PA4  (D  4)
+//  PWM        (D  6)  PA6  7|    |8   PA5  (D  5)        PWM
+//                           +----+
 
 
   */
@@ -87,8 +87,8 @@ ATTINY861 Pinout
   #define POWER_BUTTON_PIN    PIN_PA2  // Phys Pin 11 (PA7) 
 
   // --- CPU-Signale (Ausgänge) ---
-  #define RESB_PIN            PIN_PB1
-  #define IRQB_PIN            PIN_PB0 
+  #define RESB_PIN            PIN_PB0
+  #define IRQB_PIN            PIN_PB1
   // #define RESET_BUTTON_PIN    PIN_PB1
 
   #define ACT_LED             PIN_PA5

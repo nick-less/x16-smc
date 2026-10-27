@@ -68,7 +68,7 @@ void keyboardTick() {
       return;
     }
 #if !defined(__AVR_ATtiny861__)
-    digitalWrite_opt(IRQB_PIN, Keyboard.available());
+    // digitalWrite_opt(IRQB_PIN, Keyboard.available());
 #endif
 
     // State machine

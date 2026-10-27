@@ -265,7 +265,7 @@ void setup() {
 #if !defined(__AVR_ATtiny861__)
   // we run on main voltage, so we only do poweroff
   PowerOnSeq();
-  pinMode_opt(IRQB_PIN, OUTPUT);
+  // pinMode_opt(IRQB_PIN, OUTPUT);
 
 #endif
   
@@ -452,13 +452,13 @@ void HardReboot() {
 }
 
 void assertReset() {
-  pinMode_opt(RESB_PIN, OUTPUT);
   digitalWrite_opt(RESB_PIN, RESET_ACTIVE);
+  pinMode_opt(RESB_PIN, OUTPUT);
 }
 
 void deassertReset() {
-  digitalWrite_opt(RESB_PIN, RESET_INACTIVE);
   pinMode_opt(RESB_PIN, INPUT);
+  digitalWrite_opt(RESB_PIN, RESET_INACTIVE);
 }
 
 // ----------------------------------------------------------------
